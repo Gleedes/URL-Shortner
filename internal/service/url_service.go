@@ -1,7 +1,6 @@
 package service
 
 import (
-	"database/sql"
 	"errors"
 	"net/url"
 	"time"
@@ -11,8 +10,6 @@ import (
 )
 
 const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-
-var ErrInvalidURL = errors.New("invalid URL")
 
 type URLService interface {
 	Shorten(originalURL string) (*model.URL, error)
@@ -33,7 +30,7 @@ func (urlS urlService) Shorten(originalURL string) (*model.URL, error) {
 	url := model.URL{}
 
 	existing, err := urlS.repo.GetByOriginalURL(originalURL)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !errors.Is(err, repository.ErrURLNotFound) {
 		return nil, err
 	}
 
@@ -41,11 +38,13 @@ func (urlS urlService) Shorten(originalURL string) (*model.URL, error) {
 		return existing, nil
 	}
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, repository.ErrURLNotFound) {
 		url.OriginalURL = originalURL
 		url.ShortCode = ""
 		url.CreatedAt = time.Now().Format(time.RFC3339)
-		urlS.repo.Save(&url)
+		if err := urlS.repo.Save(&url); err != nil {
+			return nil, err
+		}
 		return &url, nil
 
 	}
@@ -59,11 +58,11 @@ func isValidURL(originalURL string) (bool, error) {
 	}
 
 	if u.Scheme != "http" && u.Scheme != "https" {
-		return false, ErrInvalidURL
+		return false, ErrInvalidScheme
 	}
 
 	if u.Host == "" {
-		return false, ErrInvalidURL
+		return false, ErrInvalidHost
 	}
 
 	return true, nil
