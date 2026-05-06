@@ -32,7 +32,7 @@ func (sURLRep *sqliteURLRepository) Save(url *model.URL) error {
 
 func (sURLRep *sqliteURLRepository) GetByShortCode(shortCode string) (*model.URL, error) {
 	url := &model.URL{}
-	err := sURLRep.db.QueryRow("SELECT id, short_code, original_url, created_at FROM urls WHERE short_code = ?", shortCode).Scan(&url.ID, &url.ShortCode, &url.OriginalURL, &url.CreatedAt) // &url. - это адрес поля ... в памяти, просто url - значение поля ...
+	err := sURLRep.db.QueryRow("SELECT id, short_code, original_url, created_at FROM urls WHERE short_code = ?", shortCode).Scan(&url.ID, &url.ShortCode, &url.OriginalURL, &url.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrURLNotFound
 	}
